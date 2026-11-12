@@ -1,0 +1,1405 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { ChangeEvent, CSSProperties } from "react";
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000"
+).replace(/\/+$/, "");
+
+type MenuCard = { title: string; description: string; image: string; href: string };
+type TeamMember = { name: string; position: string; phone: string; email: string; photo: string; visible: boolean };
+
+type SiteSettings = {
+  hero_eyebrow: string;
+  hero_title_line1: string;
+  hero_title_line2: string;
+  hero_title_line3: string;
+  hero_description: string;
+  hero_image: string | null;
+  stat1_value: string;
+  stat1_label: string;
+  stat2_value: string;
+  stat2_label: string;
+  stat3_value: string;
+  stat3_label: string;
+  menu_services: MenuCard[];
+  menu_about: MenuCard[];
+  team_members: TeamMember[];
+};
+
+const DEFAULT_SETTINGS: SiteSettings = {
+  hero_eyebrow: "НЕДВИЖИМОСТЬ • КРАСНОДАР",
+  hero_title_line1: "Найдём место,",
+  hero_title_line2: "которое станет",
+  hero_title_line3: "домом",
+  hero_description:
+    "Покупка, продажа и аренда недвижимости в Краснодаре. Полное сопровождение сделки и персональный подход к каждому клиенту.",
+  hero_image: null,
+  stat1_value: "500+",
+  stat1_label: "Объектов",
+  stat2_value: "150+",
+  stat2_label: "Сделок",
+  stat3_value: "98%",
+  stat3_label: "Довольных клиентов",
+  menu_services: [
+  {
+    "title": "Подбор недвижимости",
+    "description": "Подберём подходящие объекты",
+    "image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  },
+  {
+    "title": "Ипотека",
+    "description": "Помощь с ипотекой",
+    "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  },
+  {
+    "title": "Оценка",
+    "description": "Оценим рыночную стоимость",
+    "image": "https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  },
+  {
+    "title": "Продать объект",
+    "description": "Сопровождение продажи",
+    "image": "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  },
+  {
+    "title": "Юридические услуги",
+    "description": "Безопасность сделки",
+    "image": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  },
+  {
+    "title": "Дизайн и ремонт недвижимости",
+    "description": "Подготовка пространства",
+    "image": "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=80",
+    "href": "/services"
+  }
+],
+  menu_about: [
+  {
+    "title": "История компании",
+    "description": "Знакомство с АсАдрес",
+    "image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80",
+    "href": "/about"
+  },
+  {
+    "title": "Специалисты по недвижимости",
+    "description": "Наша команда",
+    "image": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80",
+    "href": "/about"
+  },
+  {
+    "title": "Блог",
+    "description": "Новости и советы",
+    "image": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=900&q=80",
+    "href": "/about"
+  },
+  {
+    "title": "Карьера",
+    "description": "Работа в АсАдрес",
+    "image": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80",
+    "href": "/about"
+  },
+  {
+    "title": "Региональное партнёрство",
+    "description": "Развиваемся вместе",
+    "image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80",
+    "href": "/about"
+  },
+  {
+    "title": "Служба заботы",
+    "description": "Помогаем клиентам",
+    "image": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80",
+    "href": "/contacts"
+  }
+],
+  team_members: [
+  {
+    "name": "Имя Фамилия",
+    "position": "Руководитель агентства",
+    "phone": "+7 (900) 111-11-11",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  },
+  {
+    "name": "Имя Фамилия",
+    "position": "Менеджер по недвижимости",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  },
+  {
+    "name": "Имя Фамилия",
+    "position": "Специалист по новостройкам",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  },
+  {
+    "name": "Имя Фамилия",
+    "position": "Юрист по сделкам",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  },
+  {
+    "name": "Имя Фамилия",
+    "position": "Ипотечный специалист",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  },
+  {
+    "name": "Имя Фамилия",
+    "position": "Менеджер по работе с клиентами",
+    "phone": "+7 (900) 000-00-00",
+    "email": "info@doma.ru",
+    "photo": "",
+    "visible": true
+  }
+],
+};
+
+function normalizeSettings(data: Partial<SiteSettings> | null | undefined): SiteSettings {
+  const input = data ?? {};
+  // Пустая строка является осознанным значением: если администратор
+  // удалил текст Hero, не подменяем его текстом по умолчанию.
+  // Значение по умолчанию используем только для отсутствующих/неверных полей.
+  const textOrDefault = (value: unknown, fallback: string) =>
+    typeof value === "string" ? value : fallback;
+
+  return {
+    hero_eyebrow: textOrDefault(input.hero_eyebrow, DEFAULT_SETTINGS.hero_eyebrow),
+    hero_title_line1: textOrDefault(input.hero_title_line1, DEFAULT_SETTINGS.hero_title_line1),
+    hero_title_line2: textOrDefault(input.hero_title_line2, DEFAULT_SETTINGS.hero_title_line2),
+    hero_title_line3: textOrDefault(input.hero_title_line3, DEFAULT_SETTINGS.hero_title_line3),
+    hero_description: textOrDefault(input.hero_description, DEFAULT_SETTINGS.hero_description),
+    hero_image: typeof input.hero_image === "string" && input.hero_image.trim() ? input.hero_image : null,
+    stat1_value: textOrDefault(input.stat1_value, DEFAULT_SETTINGS.stat1_value),
+    stat1_label: textOrDefault(input.stat1_label, DEFAULT_SETTINGS.stat1_label),
+    stat2_value: textOrDefault(input.stat2_value, DEFAULT_SETTINGS.stat2_value),
+    stat2_label: textOrDefault(input.stat2_label, DEFAULT_SETTINGS.stat2_label),
+    stat3_value: textOrDefault(input.stat3_value, DEFAULT_SETTINGS.stat3_value),
+    stat3_label: textOrDefault(input.stat3_label, DEFAULT_SETTINGS.stat3_label),
+    menu_services: Array.isArray(input.menu_services) ? input.menu_services : DEFAULT_SETTINGS.menu_services,
+    menu_about: Array.isArray(input.menu_about) ? input.menu_about : DEFAULT_SETTINGS.menu_about,
+    team_members: Array.isArray(input.team_members) ? input.team_members : DEFAULT_SETTINGS.team_members,
+  };
+}
+
+async function imageToDataUrl(
+  file: File,
+  options: { maxWidth?: number; maxHeight?: number; quality?: number } = {},
+): Promise<string> {
+  const reader = new FileReader();
+
+  const source = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Не удалось прочитать изображение."));
+    reader.readAsDataURL(file);
+  });
+
+  const image = new Image();
+
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("Не удалось обработать изображение."));
+    image.src = source;
+  });
+
+  const maxWidth = options.maxWidth ?? 2200;
+  const maxHeight = options.maxHeight ?? 1200;
+  const quality = options.quality ?? 0.84;
+  const ratio = Math.min(
+    1,
+    maxWidth / image.naturalWidth,
+    maxHeight / image.naturalHeight,
+  );
+
+  const width = Math.max(1, Math.round(image.naturalWidth * ratio));
+  const height = Math.max(1, Math.round(image.naturalHeight * ratio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Браузер не поддерживает обработку изображения.");
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+function getToken() {
+  if (typeof window === "undefined") return "";
+
+  const storedToken =
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
+    "";
+
+  return storedToken.replace(/^Bearer\s+/i, "").trim();
+}
+
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label style={fieldWrapStyle}>
+      <span style={labelStyle}>{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        style={inputStyle}
+      />
+    </label>
+  );
+}
+
+export default function SettingsPage() {
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${API_URL}/site-settings`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить настройки сайта.");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setSettings(normalizeSettings(data));
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Ошибка загрузки настроек.",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function updateField<K extends keyof SiteSettings>(
+    field: K,
+    value: SiteSettings[K],
+  ) {
+    setSettings((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Можно загружать только изображения.");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Исходное изображение слишком большое. Максимум — 8 МБ.");
+      return;
+    }
+
+    try {
+      setError("");
+      const dataUrl = await imageToDataUrl(file);
+      updateField("hero_image", dataUrl);
+      setMessage("Новое изображение добавлено. Нажмите «Сохранить изменения».");
+    } catch (imageError) {
+      setError(
+        imageError instanceof Error
+          ? imageError.message
+          : "Не удалось обработать изображение.",
+      );
+    }
+  }
+
+  async function handleTeamPhotoChange(
+    event: ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Можно загружать только изображения.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Исходное изображение слишком большое. Максимум — 8 МБ.");
+      return;
+    }
+    try {
+      setError("");
+      const photo = await imageToDataUrl(file);
+      updateField(
+        "team_members",
+        settings.team_members.map((person, i) =>
+          i === index ? { ...person, photo } : person,
+        ),
+      );
+      setMessage("Фото сотрудника добавлено. Нажмите «Сохранить изменения».");
+    } catch (photoError) {
+      setError(photoError instanceof Error ? photoError.message : "Не удалось обработать фото сотрудника.");
+    }
+  }
+
+  type MenuSectionKey = "menu_services" | "menu_about";
+
+  function updateMenuCardImage(
+    section: MenuSectionKey,
+    index: number,
+    image: string,
+  ) {
+    setSettings((current) => ({
+      ...current,
+      [section]: current[section].map((item, itemIndex) =>
+        itemIndex === index ? { ...item, image } : item,
+      ),
+    }));
+  }
+
+  async function handleMenuCardImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+    section: MenuSectionKey,
+    index: number,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Для карточки можно выбрать только изображение.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Изображение карточки больше 8 МБ. Выберите файл меньшего размера.");
+      return;
+    }
+
+    try {
+      setError("");
+      setMessage("");
+      // Меню использует широкие карточки; уменьшаем изображение,
+      // чтобы настройки не разрастались в базе данных.
+      const image = await imageToDataUrl(file, {
+        maxWidth: 1400,
+        maxHeight: 900,
+        quality: 0.78,
+      });
+      updateMenuCardImage(section, index, image);
+      setMessage("Изображение карточки загружено. Нажмите «Сохранить изменения».");
+    } catch (imageError) {
+      setError(
+        imageError instanceof Error
+          ? imageError.message
+          : "Не удалось обработать изображение карточки.",
+      );
+    }
+  }
+
+  async function saveSettings() {
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      const token = getToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/site-settings`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(settings),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.detail || "Не удалось сохранить настройки.",
+        );
+      }
+
+      // Не показываем «сохранено» только на основании успешного PUT.
+      // Повторно читаем настройки из БД через публичный GET и сверяем
+      // критичные поля Hero, включая пустые строки и фотографию.
+      const verifyResponse = await fetch(`${API_URL}/site-settings`, {
+        cache: "no-store",
+      });
+
+      if (!verifyResponse.ok) {
+        throw new Error(
+          "Сервер принял изменения, но не удалось проверить сохранённые настройки. Проверьте GET /site-settings.",
+        );
+      }
+
+      const verifyPayload = await verifyResponse.json();
+      const savedSettings = normalizeSettings(verifyPayload);
+      const fieldsToVerify: (keyof SiteSettings)[] = [
+        "hero_eyebrow",
+        "hero_title_line1",
+        "hero_title_line2",
+        "hero_title_line3",
+        "hero_description",
+        "hero_image",
+        "stat1_value",
+        "stat1_label",
+        "stat2_value",
+        "stat2_label",
+        "stat3_value",
+        "stat3_label",
+      ];
+
+      const mismatchedField = fieldsToVerify.find(
+        (field) => savedSettings[field] !== settings[field],
+      );
+
+      if (mismatchedField) {
+        const expected = settings[mismatchedField];
+        const received = savedSettings[mismatchedField];
+        const formatValue = (value: unknown) => {
+          if (value === null) return "null";
+          if (typeof value === "string") return JSON.stringify(value.slice(0, 180));
+          return JSON.stringify(value);
+        };
+        throw new Error(
+          `Проверка GET /site-settings не прошла для поля «${mismatchedField}». ` +
+          `Отправлено: ${formatValue(expected)}; сервер вернул: ${formatValue(received)}. ` +
+          `Проверьте адрес NEXT_PUBLIC_API_URL и актуальность Backend на Render.`,
+        );
+      }
+
+      setSettings(savedSettings);
+      setMessage("Изменения сохранены и повторно проверены на сервере.");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Ошибка сохранения.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function changePassword() {
+    try {
+      setChangingPassword(true);
+      setPasswordError("");
+      setPasswordMessage("");
+
+      if (!currentPassword) {
+        throw new Error("Введите текущий пароль.");
+      }
+      if (newPassword.length < 8) {
+        throw new Error("Новый пароль должен содержать не менее 8 символов.");
+      }
+      if (newPassword !== confirmPassword) {
+        throw new Error("Новый пароль и подтверждение не совпадают.");
+      }
+      if (new TextEncoder().encode(newPassword).length > 72) {
+        throw new Error("Новый пароль превышает ограничение bcrypt в 72 байта UTF-8. Сократите пароль.");
+      }
+
+      const token = getToken();
+      if (!token) {
+        throw new Error("Сессия администратора не найдена. Войдите в админ-панель заново.");
+      }
+
+      const response = await fetch(`${API_URL}/admin/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+        cache: "no-store",
+      });
+
+      const rawResponse = await response.text();
+      let data: { detail?: string; message?: string } = {};
+      if (rawResponse) {
+        try {
+          data = JSON.parse(rawResponse);
+        } catch {
+          data = { detail: rawResponse };
+        }
+      }
+      if (!response.ok) {
+        throw new Error(
+          data?.detail || `Не удалось изменить пароль (HTTP ${response.status}).`,
+        );
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordMessage(data?.message || "Пароль успешно изменён.");
+    } catch (passwordChangeError) {
+      setPasswordError(
+        passwordChangeError instanceof Error
+          ? passwordChangeError.message
+          : "Ошибка при смене пароля.",
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
+  function resetSettings() {
+    setSettings(DEFAULT_SETTINGS);
+    setMessage("Поля сброшены до стандартных значений. Нажмите «Сохранить изменения», чтобы применить их.");
+    setError("");
+  }
+
+  const previewBackground = settings.hero_image
+    ? `linear-gradient(rgba(0,0,0,.38), rgba(0,0,0,.38)), url(${settings.hero_image})`
+    : "linear-gradient(120deg, #7d574b, #d99053)";
+
+  return (
+    <main style={pageStyle}>
+      <style>{`@media (max-width: 980px) { .doma-settings-grid { grid-template-columns: minmax(0, 1fr) !important; } .doma-settings-fields { grid-template-columns: minmax(0, 1fr) !important; } .doma-settings-stats { grid-template-columns: minmax(0, 1fr) !important; } .doma-settings-image-grid { grid-template-columns: minmax(0, 1fr) !important; } .doma-settings-info { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
+      <div style={containerStyle}>
+        <div style={topbarStyle}>
+          <div>
+            <div style={eyebrowStyle}>АсАдрес · АДМИН-ПАНЕЛЬ</div>
+            <h1 style={pageTitleStyle}>Настройки главной страницы</h1>
+            <p style={subtitleStyle}>
+              Управляйте фотографией, заголовком, описанием и статистикой первого экрана.
+            </p>
+          </div>
+
+          <div style={actionsStyle}>
+            <button type="button" onClick={resetSettings} style={secondaryButtonStyle}>
+              Сбросить
+            </button>
+            <button
+              type="button"
+              onClick={saveSettings}
+              disabled={saving || loading}
+              style={{
+                ...primaryButtonStyle,
+                opacity: saving || loading ? 0.65 : 1,
+              }}
+            >
+              {saving ? "Сохранение…" : "Сохранить изменения"}
+            </button>
+          </div>
+        </div>
+
+        {error && <div style={errorStyle}>{error}</div>}
+        {message && <div style={successStyle}>{message}</div>}
+
+        {loading ? (
+          <div style={loadingCardStyle}>Загрузка настроек…</div>
+        ) : (
+          <div className="doma-settings-grid" style={gridStyle}>
+            <section style={cardStyle}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>01</div>
+                  <h2 style={sectionTitleStyle}>Текст Hero-блока</h2>
+                </div>
+                <div style={sectionHintStyle}>Видно на главной странице</div>
+              </div>
+
+              <div className="doma-settings-fields" style={fieldsGridStyle}>
+                <InputField
+                  label="Надпись над заголовком"
+                  value={settings.hero_eyebrow}
+                  onChange={(value) => updateField("hero_eyebrow", value)}
+                />
+                <InputField
+                  label="Заголовок · строка 1"
+                  value={settings.hero_title_line1}
+                  onChange={(value) => updateField("hero_title_line1", value)}
+                />
+                <InputField
+                  label="Заголовок · строка 2"
+                  value={settings.hero_title_line2}
+                  onChange={(value) => updateField("hero_title_line2", value)}
+                />
+                <InputField
+                  label="Заголовок · строка 3"
+                  value={settings.hero_title_line3}
+                  onChange={(value) => updateField("hero_title_line3", value)}
+                />
+              </div>
+
+              <label style={{ ...fieldWrapStyle, marginTop: 18 }}>
+                <span style={labelStyle}>Описание</span>
+                <textarea
+                  value={settings.hero_description}
+                  onChange={(event) => updateField("hero_description", event.target.value)}
+                  rows={5}
+                  style={textareaStyle}
+                  placeholder="Короткое описание агентства"
+                />
+              </label>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>02</div>
+                  <h2 style={sectionTitleStyle}>Статистика</h2>
+                </div>
+                <div style={sectionHintStyle}>Три показателя под текстом</div>
+              </div>
+
+              <div className="doma-settings-stats" style={statsGridStyle}>
+                <div style={statEditorStyle}>
+                  <InputField
+                    label="Значение"
+                    value={settings.stat1_value}
+                    onChange={(value) => updateField("stat1_value", value)}
+                  />
+                  <InputField
+                    label="Подпись"
+                    value={settings.stat1_label}
+                    onChange={(value) => updateField("stat1_label", value)}
+                  />
+                </div>
+
+                <div style={statEditorStyle}>
+                  <InputField
+                    label="Значение"
+                    value={settings.stat2_value}
+                    onChange={(value) => updateField("stat2_value", value)}
+                  />
+                  <InputField
+                    label="Подпись"
+                    value={settings.stat2_label}
+                    onChange={(value) => updateField("stat2_label", value)}
+                  />
+                </div>
+
+                <div style={statEditorStyle}>
+                  <InputField
+                    label="Значение"
+                    value={settings.stat3_value}
+                    onChange={(value) => updateField("stat3_value", value)}
+                  />
+                  <InputField
+                    label="Подпись"
+                    value={settings.stat3_label}
+                    onChange={(value) => updateField("stat3_label", value)}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>03</div>
+                  <h2 style={sectionTitleStyle}>Фоновая фотография</h2>
+                </div>
+                <div style={sectionHintStyle}>Один фон на весь Hero</div>
+              </div>
+
+              <div className="doma-settings-image-grid" style={imageEditorGridStyle}>
+                <div>
+                  <label style={uploadZoneStyle}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageChange}
+                      style={{ display: "none" }}
+                    />
+                    <div style={uploadIconStyle}>＋</div>
+                    <div style={uploadTitleStyle}>Выбрать новую фотографию</div>
+                    <div style={uploadHintStyle}>
+                      JPG, PNG или WEBP · исходный файл до 8 МБ
+                    </div>
+                  </label>
+
+                  <div style={imageMetaStyle}>
+                    Изображение автоматически уменьшается перед сохранением, поэтому база не будет получать огромный исходный файл.
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    ...previewStyle,
+                    backgroundImage: previewBackground,
+                  }}
+                >
+                  <div style={previewContentStyle}>
+                    <div style={previewEyebrowStyle}>{settings.hero_eyebrow}</div>
+                    <div style={previewTitleStyle}>
+                      {settings.hero_title_line1}
+                      <br />
+                      {settings.hero_title_line2}
+                      <br />
+                      {settings.hero_title_line3}
+                    </div>
+                    <div style={previewDescriptionStyle}>{settings.hero_description}</div>
+
+                    <div style={previewStatsStyle}>
+                      <div>
+                        <div style={previewStatValueStyle}>{settings.stat1_value}</div>
+                        <div style={previewStatLabelStyle}>{settings.stat1_label}</div>
+                      </div>
+                      <div>
+                        <div style={previewStatValueStyle}>{settings.stat2_value}</div>
+                        <div style={previewStatLabelStyle}>{settings.stat2_label}</div>
+                      </div>
+                      <div>
+                        <div style={previewStatValueStyle}>{settings.stat3_value}</div>
+                        <div style={previewStatLabelStyle}>{settings.stat3_label}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>04</div>
+                  <h2 style={sectionTitleStyle}>Мегаменю «Услуги»</h2>
+                </div>
+                <div style={sectionHintStyle}>Карточки всплывающего окна</div>
+              </div>
+              <div className="doma-settings-fields" style={fieldsGridStyle}>
+                {settings.menu_services.map((item, index) => (
+                  <div key={`service-${index}`} style={{ ...statEditorStyle, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14 }}>
+                    <strong>Карточка {index + 1}</strong>
+                    <InputField label="Название" value={item.title} onChange={(value) => updateField("menu_services", settings.menu_services.map((x, i) => i === index ? { ...x, title: value } : x))} />
+                    <InputField label="Описание" value={item.description} onChange={(value) => updateField("menu_services", settings.menu_services.map((x, i) => i === index ? { ...x, description: value } : x))} />
+<div style={{ display: "grid", gap: 8 }}>
+                      <span style={{ ...labelStyle, display: "block" }}>Изображение карточки</span>
+                      <label style={{ ...uploadZoneStyle, minHeight: 92, padding: 14, gap: 5 }}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(event) => handleMenuCardImageChange(event, "menu_services", index)}
+                          style={{ display: "none" }}
+                        />
+                        <span style={{ fontSize: 24, color: "#ef4444", fontWeight: 700 }}>＋</span>
+                        <span style={{ fontWeight: 800, fontSize: 13 }}>Выбрать изображение с компьютера</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>JPG, PNG или WEBP · до 8 МБ</span>
+                      </label>
+                      {item.image ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <img
+                            src={item.image}
+                            alt={`Изображение карточки ${index + 1}`}
+                            style={{ width: 112, height: 70, objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateMenuCardImage("menu_services", index, "")}
+                            style={{ ...secondaryButtonStyle, padding: "9px 12px", fontSize: 12 }}
+                          >
+                            Удалить изображение
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#94a3b8", fontSize: 12 }}>Изображение не выбрано</span>
+                      )}
+                    </div>
+                    <InputField label="Ссылка карточки" value={item.href} onChange={(value) => updateField("menu_services", settings.menu_services.map((x, i) => i === index ? { ...x, href: value } : x))} />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>05</div>
+                  <h2 style={sectionTitleStyle}>Мегаменю «О компании»</h2>
+                </div>
+                <div style={sectionHintStyle}>Карточки всплывающего окна</div>
+              </div>
+              <div className="doma-settings-fields" style={fieldsGridStyle}>
+                {settings.menu_about.map((item, index) => (
+                  <div key={`about-${index}`} style={{ ...statEditorStyle, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14 }}>
+                    <strong>Карточка {index + 1}</strong>
+                    <InputField label="Название" value={item.title} onChange={(value) => updateField("menu_about", settings.menu_about.map((x, i) => i === index ? { ...x, title: value } : x))} />
+                    <InputField label="Описание" value={item.description} onChange={(value) => updateField("menu_about", settings.menu_about.map((x, i) => i === index ? { ...x, description: value } : x))} />
+<div style={{ display: "grid", gap: 8 }}>
+                      <span style={{ ...labelStyle, display: "block" }}>Изображение карточки</span>
+                      <label style={{ ...uploadZoneStyle, minHeight: 92, padding: 14, gap: 5 }}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(event) => handleMenuCardImageChange(event, "menu_about", index)}
+                          style={{ display: "none" }}
+                        />
+                        <span style={{ fontSize: 24, color: "#ef4444", fontWeight: 700 }}>＋</span>
+                        <span style={{ fontWeight: 800, fontSize: 13 }}>Выбрать изображение с компьютера</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>JPG, PNG или WEBP · до 8 МБ</span>
+                      </label>
+                      {item.image ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <img
+                            src={item.image}
+                            alt={`Изображение карточки ${index + 1}`}
+                            style={{ width: 112, height: 70, objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateMenuCardImage("menu_about", index, "")}
+                            style={{ ...secondaryButtonStyle, padding: "9px 12px", fontSize: 12 }}
+                          >
+                            Удалить изображение
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#94a3b8", fontSize: 12 }}>Изображение не выбрано</span>
+                      )}
+                    </div>
+                    <InputField label="Ссылка карточки" value={item.href} onChange={(value) => updateField("menu_about", settings.menu_about.map((x, i) => i === index ? { ...x, href: value } : x))} />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>06</div>
+                  <h2 style={sectionTitleStyle}>Команда на странице контактов</h2>
+                </div>
+                <div style={sectionHintStyle}>Шесть редактируемых карточек</div>
+              </div>
+              <div className="doma-settings-fields" style={fieldsGridStyle}>
+                {settings.team_members.map((person, index) => (
+                  <div key={`person-${index}`} style={{ ...statEditorStyle, padding: 16, border: "1px solid #e5e7eb", borderRadius: 14 }}>
+                    <strong>Сотрудник {index + 1}</strong>
+                    <InputField label="ФИО" value={person.name} onChange={(value) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, name: value } : x))} />
+                    <InputField label="Должность" value={person.position} onChange={(value) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, position: value } : x))} />
+                    <InputField label="Телефон" value={person.phone} onChange={(value) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, phone: value } : x))} />
+                    <InputField label="Email" value={person.email} onChange={(value) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, email: value } : x))} />
+                    <InputField label="Фото (URL или Data URL)" value={person.photo} onChange={(value) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, photo: value } : x))} />
+                    <label style={{ ...uploadZoneStyle, marginTop: 10, padding: 12, display: "block", cursor: "pointer" }}>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => handleTeamPhotoChange(event, index)} style={{ display: "none" }} />
+                      <div style={{ fontWeight: 700 }}>Загрузить фото с компьютера</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>JPG, PNG или WEBP · до 8 МБ</div>
+                    </label>
+                    {person.photo && <img src={person.photo} alt={`Фото ${person.name}`} style={{ width: 88, height: 88, objectFit: "cover", borderRadius: 12, marginTop: 10 }} />}
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, fontSize: 14 }}>
+                      <input type="checkbox" checked={person.visible} onChange={(event) => updateField("team_members", settings.team_members.map((x, i) => i === index ? { ...x, visible: event.target.checked } : x))} />
+                      Показывать на сайте
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>07</div>
+                  <h2 style={sectionTitleStyle}>Смена пароля администратора</h2>
+                </div>
+                <div style={sectionHintStyle}>Защита доступа к админ-панели</div>
+              </div>
+
+              <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6, margin: "-4px 0 18px" }}>
+                Для смены пароля укажите текущий пароль и подтвердите новый. Новый пароль должен содержать не менее 8 символов; для bcrypt действует ограничение 72 байта UTF-8.
+              </p>
+
+              {passwordError && <div style={errorStyle}>{passwordError}</div>}
+              {passwordMessage && <div style={successStyle}>{passwordMessage}</div>}
+
+              <div
+                className="doma-password-fields"
+                style={{
+                  ...fieldsGridStyle,
+                  width: "100%",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+                }}
+              >
+                <label style={fieldWrapStyle}>
+                  <span style={labelStyle}>Текущий пароль</span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    style={inputStyle}
+                    maxLength={128}
+                  />
+                </label>
+                <label style={fieldWrapStyle}>
+                  <span style={labelStyle}>Новый пароль</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    style={inputStyle}
+                    minLength={8}
+                    maxLength={72}
+                  />
+                </label>
+                <label style={fieldWrapStyle}>
+                  <span style={labelStyle}>Повторите новый пароль</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    style={inputStyle}
+                    minLength={8}
+                    maxLength={72}
+                  />
+                </label>
+              </div>
+
+              <div style={{ ...actionsStyle, marginTop: 18 }}>
+                <button
+                  type="button"
+                  onClick={changePassword}
+                  disabled={changingPassword}
+                  style={{ ...primaryButtonStyle, opacity: changingPassword ? 0.65 : 1 }}
+                >
+                  {changingPassword ? "Изменение пароля…" : "Изменить пароль"}
+                </button>
+              </div>
+            </section>
+
+            <section style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+              <div style={sectionHeaderStyle}>
+                <div>
+                  <div style={sectionNumberStyle}>08</div>
+                  <h2 style={sectionTitleStyle}>Как это работает</h2>
+                </div>
+              </div>
+
+              <div className="doma-settings-info" style={infoRowStyle}>
+                <div style={infoItemStyle}>
+                  <strong>1. Меняете данные здесь</strong>
+                  <span>Фото и текст сохраняются в базе сайта.</span>
+                </div>
+                <div style={infoItemStyle}>
+                  <strong>2. Главная получает настройки</strong>
+                  <span>Hero-блок загружает актуальные значения с API.</span>
+                </div>
+                <div style={infoItemStyle}>
+                  <strong>3. Старое содержимое не теряется</strong>
+                  <span>До первого сохранения используются текущие тексты и текущий CSS-фон.</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+const pageStyle: CSSProperties = {
+  minHeight: "100vh",
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box",
+  background: "#f1f5f9",
+  padding: "clamp(16px, 2.4vw, 36px)",
+  color: "#111827",
+};
+
+const containerStyle: CSSProperties = {
+  display: "block",
+  width: "100%",
+  maxWidth: "none",
+  minWidth: 0,
+  boxSizing: "border-box",
+  margin: "0 auto",
+};
+
+const topbarStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 24,
+  alignItems: "flex-end",
+  marginBottom: 24,
+  flexWrap: "wrap",
+};
+
+const eyebrowStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  color: "#ef4444",
+  textTransform: "uppercase",
+  marginBottom: 8,
+};
+
+const pageTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(34px, 4vw, 52px)",
+  lineHeight: 1,
+  letterSpacing: "-0.04em",
+  fontWeight: 800,
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "12px 0 0",
+  maxWidth: 760,
+  color: "#64748b",
+  fontSize: 15,
+  lineHeight: 1.6,
+};
+
+const actionsStyle: CSSProperties = {
+  display: "flex",
+  gap: 10,
+  alignItems: "center",
+};
+
+const secondaryButtonStyle: CSSProperties = {
+  border: "1px solid #d8dee8",
+  background: "#ffffff",
+  color: "#334155",
+  borderRadius: 13,
+  padding: "13px 18px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const primaryButtonStyle: CSSProperties = {
+  border: "none",
+  background: "#e5484d",
+  color: "#ffffff",
+  borderRadius: 13,
+  padding: "13px 22px",
+  fontWeight: 800,
+  cursor: "pointer",
+  boxShadow: "0 10px 24px rgba(229,72,77,.22)",
+};
+
+const cardStyle: CSSProperties = {
+  background: "#ffffff",
+  borderRadius: 24,
+  border: "1px solid #e3e8ef",
+  padding: 26,
+  boxShadow: "0 16px 38px rgba(15,23,42,.055)",
+};
+
+const gridStyle: CSSProperties = {
+  display: "grid",
+  width: "100%",
+  minWidth: 0,
+  boxSizing: "border-box",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 20,
+};
+
+const sectionHeaderStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 18,
+  marginBottom: 20,
+};
+
+const sectionNumberStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  color: "#ef4444",
+  marginBottom: 6,
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 24,
+  lineHeight: 1.1,
+  letterSpacing: "-0.025em",
+};
+
+const sectionHintStyle: CSSProperties = {
+  color: "#94a3b8",
+  fontSize: 13,
+  paddingTop: 3,
+  textAlign: "right",
+};
+
+const fieldsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+  gap: 16,
+};
+
+const statsGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+  gap: 14,
+};
+
+const statEditorStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  padding: 14,
+  background: "#f8fafc",
+  border: "1px solid #e6ebf1",
+  borderRadius: 18,
+};
+
+const fieldWrapStyle: CSSProperties = {
+  display: "grid",
+  gap: 7,
+};
+
+const labelStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  color: "#475569",
+  letterSpacing: "0.02em",
+};
+
+const inputStyle: CSSProperties = {
+  width: "100%",
+  border: "1px solid #d9e0e8",
+  borderRadius: 13,
+  padding: "12px 14px",
+  fontSize: 14,
+  outline: "none",
+  background: "#ffffff",
+  color: "#111827",
+  boxSizing: "border-box",
+};
+
+const textareaStyle: CSSProperties = {
+  ...inputStyle,
+  resize: "vertical",
+  minHeight: 140,
+  lineHeight: 1.55,
+};
+
+const imageEditorGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "0.72fr 1.28fr",
+  gap: 18,
+  alignItems: "stretch",
+};
+
+const uploadZoneStyle: CSSProperties = {
+  minHeight: 260,
+  border: "1.5px dashed #cbd5e1",
+  borderRadius: 20,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  textAlign: "center",
+  background: "#f8fafc",
+  cursor: "pointer",
+  padding: 22,
+};
+
+const uploadIconStyle: CSSProperties = {
+  width: 54,
+  height: 54,
+  borderRadius: 16,
+  display: "grid",
+  placeItems: "center",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  fontSize: 28,
+  color: "#ef4444",
+  marginBottom: 14,
+};
+
+const uploadTitleStyle: CSSProperties = {
+  fontSize: 16,
+  fontWeight: 800,
+  marginBottom: 6,
+};
+
+const uploadHintStyle: CSSProperties = {
+  fontSize: 12,
+  color: "#64748b",
+  lineHeight: 1.5,
+};
+
+const imageMetaStyle: CSSProperties = {
+  marginTop: 10,
+  fontSize: 12,
+  color: "#64748b",
+  lineHeight: 1.5,
+};
+
+const previewStyle: CSSProperties = {
+  minHeight: 420,
+  borderRadius: 22,
+  overflow: "hidden",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  position: "relative",
+  display: "flex",
+  alignItems: "flex-end",
+};
+
+const previewContentStyle: CSSProperties = {
+  padding: "38px",
+  color: "#ffffff",
+  width: "100%",
+  textShadow: "0 2px 10px rgba(0,0,0,.28)",
+};
+
+const previewEyebrowStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  marginBottom: 14,
+};
+
+const previewTitleStyle: CSSProperties = {
+  fontSize: "clamp(30px, 4vw, 62px)",
+  lineHeight: 0.95,
+  letterSpacing: "-0.045em",
+  fontWeight: 800,
+  marginBottom: 18,
+};
+
+const previewDescriptionStyle: CSSProperties = {
+  maxWidth: 620,
+  fontSize: 14,
+  lineHeight: 1.55,
+  marginBottom: 22,
+};
+
+const previewStatsStyle: CSSProperties = {
+  display: "flex",
+  gap: 34,
+  flexWrap: "wrap",
+};
+
+const previewStatValueStyle: CSSProperties = {
+  fontSize: 26,
+  fontWeight: 800,
+  lineHeight: 1,
+};
+
+const previewStatLabelStyle: CSSProperties = {
+  marginTop: 4,
+  fontSize: 11,
+  opacity: 0.92,
+};
+
+const infoRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+  gap: 12,
+};
+
+const infoItemStyle: CSSProperties = {
+  display: "grid",
+  gap: 7,
+  padding: "14px 16px",
+  borderRadius: 16,
+  background: "#f8fafc",
+  border: "1px solid #e8edf2",
+  fontSize: 13,
+  color: "#64748b",
+  lineHeight: 1.5,
+};
+
+const errorStyle: CSSProperties = {
+  marginBottom: 16,
+  padding: "13px 16px",
+  borderRadius: 14,
+  background: "#fef2f2",
+  border: "1px solid #fecaca",
+  color: "#991b1b",
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const successStyle: CSSProperties = {
+  marginBottom: 16,
+  padding: "13px 16px",
+  borderRadius: 14,
+  background: "#ecfdf5",
+  border: "1px solid #bbf7d0",
+  color: "#166534",
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const loadingCardStyle: CSSProperties = {
+  ...cardStyle,
+  padding: 50,
+  textAlign: "center",
+  color: "#64748b",
+};

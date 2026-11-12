@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-asadres}
+      POSTGRES_USER: ${POSTGRES_USER:-asadres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-asadres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-asadres}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      # Public HTTPS address of the backend, used to register Telegram webhooks.
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL=https://api.your-domain}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+      TELEGRAM_ADMIN_USER_ID: ${TELEGRAM_ADMIN_USER_ID:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      DEVELOPER_BOT_TOKEN: ${DEVELOPER_BOT_TOKEN:-}
+      DEVELOPER_TELEGRAM_ID: ${DEVELOPER_TELEGRAM_ID:-}
+      DEVELOPER_BOT_SECRET: ${DEVELOPER_BOT_SECRET:-}
+      YANDEX_GEOCODER_API_KEY: ${YANDEX_GEOCODER_API_KEY:-}
+      MAX_IMAGE_SIZE_BYTES: ${MAX_IMAGE_SIZE_BYTES:-15728640}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    volumes:
+      - property_images:/app/images
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL=https://api.your-domain}
+        NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:?Set FRONTEND_DOMAIN=your-domain}
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN=api.your-domain}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  property_images:
+  caddy_data:
+  caddy_config:
